@@ -2,13 +2,91 @@ version: "3"
 services:
   materialious:
     image: wardpearce/materialious
+    container_name: materialious
     restart: unless-stopped
     ports:
       - 3001:80
     environment:
+      # No trailing backslashes!
+      # URL to your proxied Invidious instance
       VITE_DEFAULT_INVIDIOUS_INSTANCE: "https://invidious.materialio.us"
+
+      # URL TO RYD
+      # Leave blank to disable completely.
       VITE_DEFAULT_RETURNYTDISLIKES_INSTANCE: "https://returnyoutubedislikeapi.com"
+
+      # URL to Sponsorblock
+      # Leave blank to completely disable sponsorblock.
       VITE_DEFAULT_SPONSERBLOCK_INSTANCE: "https://sponsor.ajay.app"
+
+      # URL to DeArrow
       VITE_DEFAULT_DEARROW_INSTANCE: "https://sponsor.ajay.app"
+
+      # URL to DeArrow thumbnail instance
       VITE_DEFAULT_DEARROW_THUMBNAIL_INSTANCE: "https://dearrow-thumb.ajay.app"
-  
+
+      # Look at "Overwriting Materialious defaults" for all the accepted values.
+      VITE_DEFAULT_SETTINGS: '{"themeColor": "#2596be"}'
+
+      # URL to Syncious
+      # comment to disable completely.
+      VITE_DEFAULT_SYNCIOUS_INSTANCE: "https://syncious.example.com"
+
+      # URL to PeerJS
+      # comment to disable completely.
+      VITE_DEFAULT_PEERJS_HOST: "peerjs.example.com"
+      VITE_DEFAULT_PEERJS_PATH: "/"
+      VITE_DEFAULT_PEERJS_PORT: 443
+      
+# Use for ryd-proxy if not using tor-proxy.
+# Comment out the tor-proxy and ryd-proxy if your uncommenting this section.
+#  ryd-proxy:
+#    image: 1337kavin/ryd-proxy:latest
+#    container_name: materialious-ryd
+#    restart: unless-stopped
+#    ports:
+#      - 3003:3000
+    
+  tor-proxy:
+    image: 1337kavin/alpine-tor:latest
+    container_name: materialious-tor
+    restart: unless-stopped
+    environment:
+      - tors=15
+
+  ryd-proxy:
+    image: 1337kavin/ryd-proxy:latest
+    container_name: materialious-ryd
+    restart: unless-stopped
+    depends_on:
+      - tor-proxy
+    environment:
+      - PROXY=socks5://tor-proxy:5566
+    ports:
+      - 3003:3000
+
+# Comment out api_entended block completely to disable syncious
+  api_extended:
+    image: wardpearce/invidious_api_extended:latest
+    container_name: materialious-api
+    restart: unless-stopped
+    ports:
+      - 3004:80
+    environment:
+      api_extended_postgre: '{"host": "invidious-db", "port": 5432, "database":
+      api_extended_allowed_origins: '["https://materialio.us"]'
+      api_extended_debug: false
+
+      # No trailing backslashes!
+      api_extended_invidious_instance: "https://invidious.materialio.us"
+      api_extended_production_instance: "https://syncious.example.com"
+
+      WEB_CONCURRENCY: 4
+
+  peerjs:
+    image: peerjs/peerjs-server
+    container_name: materialious-peerjs
+    restart: unless-stopped
+    ports:
+      - 9000:9000
+      
